@@ -1,0 +1,61 @@
+name: Сборка на rustdesk-drazhev.exe
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Изтегляне на кода
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Инсталиране на PyInstaller
+        run: pip install pyinstaller
+
+      - name: Изтегляне на последния RustDesk
+        shell: pwsh
+        run: |
+          $release = Invoke-RestMethod "https://api.github.com/repos/rustdesk/rustdesk/releases/latest"
+          $asset = $release.assets | Where-Object { $_.name -match "x86_64\.exe$" } | Select-Object -First 1
+          Write-Host "Изтеглям: $($asset.browser_download_url)"
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "assets/rustdesk.exe"
+
+      - name: Сборка
+        shell: bash
+        run: |
+          mkdir -p build
+          pyinstaller \
+            --onefile \
+            --windowed \
+            --name "rustdesk-drazhev" \
+            --distpath "build" \
+            --workpath "build/.pyinstaller-work" \
+            --specpath "build" \
+            --add-data "assets/rustdesk.exe;." \
+            "${{ github.workspace }}/src/launcher.py"
+
+      - name: Качване като артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-drazhev
+          path: build/rustdesk-drazhev.exe
+          retention-days: 30
+
+      - name: Публикуване като Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "build-${{ github.run_number }}"
+          name: "rustdesk-drazhev (build ${{ github.run_number }})"
+          files: build/rustdesk-drazhev.exe
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

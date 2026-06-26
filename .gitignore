@@ -1,0 +1,6 @@
+build/
+assets/rustdesk-portable.exe
+__pycache__/
+*.pyc
+dist/
+*.spec

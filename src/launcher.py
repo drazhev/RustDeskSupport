@@ -20,7 +20,7 @@ except ImportError:
 # --- Конфигурация (различна за всеки техник) ---
 TECH_USERNAME = "drazhev"
 TECH_PASSWORD = "drazhev123"
-API_URL       = "http://hjc0a1kp4be.vpn.mynetname.net:21114"
+API_URL       = "https://rustdesk.drazhev.net"
 
 SERVER_CONFIG = """\
 [options]

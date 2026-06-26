@@ -1,9 +1,17 @@
-name: Сборка на rustdesk-drazhev.exe
+name: Сборка на rustdesk-[техник].exe
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      tech_username:
+        description: "Потребителско име на техника"
+        required: true
+        default: "drazhev"
+      tech_password:
+        description: "Парола на техника"
+        required: true
 
 jobs:
   build:
@@ -32,15 +40,30 @@ jobs:
           Write-Host "Изтеглям: $($asset.browser_download_url)"
           Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "assets/rustdesk.exe"
 
+      - name: Задаване на credentials
+        shell: pwsh
+        run: |
+          $username = "${{ github.event.inputs.tech_username }}"
+          $password = "${{ github.event.inputs.tech_password }}"
+          if (-not $username) { $username = "drazhev" }
+          (Get-Content src\launcher.py) `
+            -replace 'TECH_USERNAME = ".*"', "TECH_USERNAME = `"$username`"" `
+            -replace 'TECH_PASSWORD = ".*"', "TECH_PASSWORD = `"$password`"" |
+            Set-Content src\launcher.py
+          Write-Host "Техник: $username"
+
       - name: Сборка
         shell: pwsh
         run: |
+          $username = "${{ github.event.inputs.tech_username }}"
+          if (-not $username) { $username = "drazhev" }
+          $exeName = "rustdesk-$username"
           New-Item -ItemType Directory -Force -Path "build" | Out-Null
           $ws = "${{ github.workspace }}"
           pyinstaller `
             --onefile `
             --windowed `
-            --name "rustdesk-drazhev" `
+            --name "$exeName" `
             --distpath "$ws\build" `
             --workpath "$ws\build\.pyinstaller-work" `
             --specpath "$ws\build" `
@@ -50,16 +73,16 @@ jobs:
       - name: Качване като артефакт
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-drazhev
-          path: build/rustdesk-drazhev.exe
+          name: rustdesk-${{ github.event.inputs.tech_username || 'drazhev' }}
+          path: build/rustdesk-${{ github.event.inputs.tech_username || 'drazhev' }}.exe
           retention-days: 30
 
       - name: Публикуване като Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "build-${{ github.run_number }}"
-          name: "rustdesk-drazhev (build ${{ github.run_number }})"
-          files: build/rustdesk-drazhev.exe
+          name: "rustdesk-${{ github.event.inputs.tech_username || 'drazhev' }} (build ${{ github.run_number }})"
+          files: build/rustdesk-${{ github.event.inputs.tech_username || 'drazhev' }}.exe
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

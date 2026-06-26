@@ -2,7 +2,7 @@ name: Сборка на rustdesk-drazhev.exe
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 jobs:

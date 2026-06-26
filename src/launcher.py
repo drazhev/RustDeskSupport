@@ -13,9 +13,9 @@ import atexit
 
 CONFIG_CONTENT = """\
 [options]
-custom-rendezvous-server = "192.168.222.21"
-relay-server = "192.168.222.21"
-api-server = "http://192.168.222.21:21114"
+custom-rendezvous-server = "hjc0a1kp4be.vpn.mynetname.net"
+relay-server = "hjc0a1kp4be.vpn.mynetname.net"
+api-server = "http://hjc0a1kp4be.vpn.mynetname.net:21114"
 key = "PyMhoZr13G9aPMgshwW7XHzV86jU+MIssK80Nh9GYzc="
 """
 

@@ -24,6 +24,7 @@ jobs:
       - name: Изтегляне на последния RustDesk
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force -Path "assets" | Out-Null
           $release = Invoke-RestMethod "https://api.github.com/repos/rustdesk/rustdesk/releases/latest"
           $asset = $release.assets | Where-Object { $_.name -match "x86_64\.exe$" } | Select-Object -First 1
           Write-Host "Изтеглям: $($asset.browser_download_url)"

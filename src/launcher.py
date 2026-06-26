@@ -1,45 +1,87 @@
 """
 RustDesk launcher за клиенти на drazhev.net
-Записва конфига и стартира RustDesk с предварително зададени сървъри.
+Записва конфига, логва се към акаунта на техника и стартира RustDesk.
 """
 
 import os
 import sys
+import uuid
+import json
 import shutil
 import tempfile
 import subprocess
 import atexit
 
+try:
+    import urllib.request as urlreq
+except ImportError:
+    urlreq = None
 
-CONFIG_CONTENT = """\
+# --- Конфигурация (различна за всеки техник) ---
+TECH_USERNAME = "drazhev"
+TECH_PASSWORD = "drazhev123"
+API_URL       = "http://hjc0a1kp4be.vpn.mynetname.net:21114"
+
+SERVER_CONFIG = """\
 [options]
 custom-rendezvous-server = "hjc0a1kp4be.vpn.mynetname.net"
 relay-server = "hjc0a1kp4be.vpn.mynetname.net"
-api-server = "http://hjc0a1kp4be.vpn.mynetname.net:21114"
+api-server = "{api_url}"
 key = "PyMhoZr13G9aPMgshwW7XHzV86jU+MIssK80Nh9GYzc="
-"""
+""".format(api_url=API_URL)
+# ------------------------------------------------
 
 
 def resource_path(filename):
-    """Връща пътя до вграден файл (работи и при PyInstaller .exe)."""
     base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base, filename)
 
 
-def write_config():
-    """Записва конфига в стандартната RustDesk папка."""
+def get_device_id():
+    """Генерира уникален device ID за тази машина."""
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(uuid.getnode())))
+
+
+def api_login():
+    """Логва се към API-то и връща access_token или None."""
+    try:
+        payload = json.dumps({
+            "username": TECH_USERNAME,
+            "password": TECH_PASSWORD,
+            "id": get_device_id(),
+            "uuid": get_device_id(),
+        }).encode()
+        req = urlreq.Request(
+            f"{API_URL}/api/login",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlreq.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            return data.get("access_token")
+    except Exception:
+        return None
+
+
+def write_config(token=None):
+    """Записва RustDesk2.toml и ако има token — и ProfileCurrent.toml."""
     config_dir = os.path.join(os.environ["APPDATA"], "RustDesk", "config")
     os.makedirs(config_dir, exist_ok=True)
-    config_path = os.path.join(config_dir, "RustDesk2.toml")
-    with open(config_path, "w", encoding="utf-8") as f:
-        f.write(CONFIG_CONTENT)
+
+    with open(os.path.join(config_dir, "RustDesk2.toml"), "w", encoding="utf-8") as f:
+        f.write(SERVER_CONFIG)
+
+    if token:
+        profile = f'access_token = "{token}"\n'
+        with open(os.path.join(config_dir, "ProfileCurrent.toml"), "w", encoding="utf-8") as f:
+            f.write(profile)
 
 
 def main():
-    # Записваме конфига преди стартиране
-    write_config()
+    token = api_login()
+    write_config(token)
 
-    # Копираме rustdesk.exe във временна папка и го стартираме
     work_dir = tempfile.mkdtemp(prefix="rustdesk_drazhev_")
     atexit.register(shutil.rmtree, work_dir, ignore_errors=True)
 

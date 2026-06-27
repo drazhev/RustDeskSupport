@@ -80,9 +80,10 @@ jobs:
       - name: Публикуване като Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "build-${{ github.run_number }}"
+          tag_name: "latest-${{ github.event.inputs.tech_username || 'drazhev' }}"
           name: "rustdesk-${{ github.event.inputs.tech_username || 'drazhev' }} (build ${{ github.run_number }})"
           files: build/rustdesk-${{ github.event.inputs.tech_username || 'drazhev' }}.exe
           generate_release_notes: false
+          make_latest: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
